@@ -10,8 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.Date;
 
 @Component
 public class DataLoader implements CommandLineRunner {
@@ -41,8 +42,8 @@ public class DataLoader implements CommandLineRunner {
         brand.setBrandType("RETAILER");
         brand.setStatus("APPROVED");
         brand.setGstIn("27REST21234F1Z5");
-        brand.setCreatedAt(ZonedDateTime.parse("2025-04-14T05:01:36.340Z"));
-        brand.setUpdatedAt(ZonedDateTime.parse("2025-07-14T10:33:09.885Z"));
+        brand.setCreatedAt(Date.from(java.time.ZonedDateTime.parse("2025-04-14T05:01:36.340Z").toInstant()));
+        brand.setUpdatedAt(Date.from(java.time.ZonedDateTime.parse("2025-07-14T10:33:09.885Z").toInstant()));
         brandRepository.save(brand);
 
         // Create a user
@@ -56,8 +57,8 @@ public class DataLoader implements CommandLineRunner {
         user.setActive(true);
         user.setDeleted(false);
         user.setBrandIds(Collections.singletonList(brand.getId()));
-        user.setCreatedAt(ZonedDateTime.parse("2025-04-11T13:04:39.971Z"));
-        user.setUpdatedAt(ZonedDateTime.parse("2025-04-11T13:04:39.971Z"));
+        user.setCreatedAt(Date.from(java.time.ZonedDateTime.parse("2025-04-11T13:04:39.971Z").toInstant()));
+        user.setUpdatedAt(Date.from(java.time.ZonedDateTime.parse("2025-04-11T13:04:39.971Z").toInstant()));
         userRepository.save(user);
     }
 }

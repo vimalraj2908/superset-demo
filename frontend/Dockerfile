@@ -14,10 +14,14 @@ RUN npm run build
 # Stage 3: Production image
 FROM node:18-alpine
 WORKDIR /app
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+# Copy package.json first for better layer caching
 COPY --from=builder /app/package.json ./package.json
+# Copy node_modules
+COPY --from=builder /app/node_modules ./node_modules
+# Copy the built application
+COPY --from=builder /app/.next ./.next
+# Create public directory (Next.js will work without it)
+RUN mkdir -p ./public
 
 EXPOSE 3000
 CMD ["npm", "start"]

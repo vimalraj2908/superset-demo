@@ -51,19 +51,36 @@ services:
       - trino
       - mongo
     environment:
-      - SUPERSET_SECRET_KEY=your_super_secret_key_for_superset
-      - SUPERSET_GUEST_TOKEN_JWT_SECRET=your-guest-token-secret-key-that-is-very-secret
+      - SUPERSET_SECRET_KEY=jwt.secret=86251ab13a12de28439018414f2441dedac2d6ff52cd61ff9d625e862e41dad2
+      - SUPERSET_GUEST_TOKEN_JWT_SECRET=hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI
       - SUPERSET_LOAD_EXAMPLES=no
       - SUPERSET_CONFIG_PATH=/app/superset_config.py
       - PYTHONPATH=/app
       - ADMIN_USERNAME=admin
       - ADMIN_EMAIL=admin@superset.com
       - ADMIN_PASSWORD=admin
+      - TRINO_HOST=trino
+      - TRINO_PORT=8080
+      - MONGODB_HOST=mongo
+      - MONGODB_PORT=27017
     volumes:
       - ./superset_config.py:/app/superset_config.py
       - superset-data:/var/lib/superset
     networks:
       - brand-dashboard-net
+    command: >
+      sh -c "
+        pip install trino sqlalchemy-trino &&
+        superset db upgrade &&
+        superset fab create-admin
+          --username admin
+          --firstname Superset
+          --lastname Admin
+          --email admin@superset.com
+          --password admin &&
+        superset init &&
+        superset run -p 8088 -h 0.0.0.0
+      "
 
 volumes:
   mongo-data:

@@ -4,7 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
+import java.util.Date;
 
 @Document(collection = "brands")
 public class Brand {
@@ -19,8 +19,10 @@ public class Brand {
     private String brandType;
     private String status;
     private String gstIn;
-    private ZonedDateTime createdAt;
-    private ZonedDateTime updatedAt;
+    
+    private Date createdAt;
+    
+    private Date updatedAt;
 
     // Getters and Setters
 
@@ -96,19 +98,19 @@ public class Brand {
         this.gstIn = gstIn;
     }
 
-    public ZonedDateTime getCreatedAt() {
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(ZonedDateTime createdAt) {
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
 
-    public ZonedDateTime getUpdatedAt() {
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(ZonedDateTime updatedAt) {
+    public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

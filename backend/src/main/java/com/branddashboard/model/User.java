@@ -3,7 +3,7 @@ package com.branddashboard.model;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
 
 @Document(collection = "users")
@@ -19,8 +19,8 @@ public class User {
     private boolean isActive;
     private boolean isDeleted;
     private List<String> brandIds;
-    private ZonedDateTime createdAt;
-    private ZonedDateTime updatedAt;
+    private Date createdAt;
+    private Date updatedAt;
 
     // Getters and Setters
 
@@ -96,19 +96,19 @@ public class User {
         this.brandIds = brandIds;
     }
 
-    public ZonedDateTime getCreatedAt() {
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(ZonedDateTime createdAt) {
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
 
-    public ZonedDateTime getUpdatedAt() {
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(ZonedDateTime updatedAt) {
+    public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
     }
 }
