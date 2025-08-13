@@ -10,6 +10,13 @@ export default function DashboardPage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Check if user is authenticated
+        const token = localStorage.getItem('token');
+        if (!token) {
+            router.push('/');
+            return;
+        }
+
         const fetchBrands = async () => {
             try {
                 const response = await api.get('/brands');
@@ -18,7 +25,9 @@ export default function DashboardPage() {
                 setError('Failed to fetch brands.');
                 console.error(err);
                 if (err.response && err.response.status === 403) {
-                    router.push('/'); // Redirect to login if not authenticated
+                    // Clear invalid token and redirect to login
+                    localStorage.removeItem('token');
+                    router.push('/');
                 }
             } finally {
                 setLoading(false);
@@ -34,7 +43,25 @@ export default function DashboardPage() {
     return (
         <div className="container">
             <main className="main">
-                <h1 className="title">Your Brands</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h1 className="title">Your Brands</h1>
+                    <button 
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            router.push('/');
+                        }}
+                        style={{ 
+                            padding: '8px 16px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer' 
+                        }}
+                    >
+                        Logout
+                    </button>
+                </div>
                 <div style={{ marginTop: '2rem', width: '100%', maxWidth: '600px' }}>
                     {brands.length > 0 ? (
                         <ul style={{ listStyle: 'none', padding: 0 }}>

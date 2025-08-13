@@ -10,23 +10,41 @@ export default function BrandPage() {
     const [metrics, setMetrics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isFetching, setIsFetching] = useState(false);
     const dashboardContainer = createRef();
 
+    const MAX_RETRIES = 2;
+
     useEffect(() => {
-        if (!brandId) return;
+        // Check if user is authenticated
+        const token = localStorage.getItem('token');
+        if (!token) {
+            router.push('/');
+            return;
+        }
+
+        if (!brandId || isFetching) return;
 
         const fetchData = async () => {
+            setIsFetching(true);
             setLoading(true);
             setError('');
+            
             try {
+                console.log(`Fetching brand data for ID: ${brandId}`);
+                console.log('Token from localStorage:', localStorage.getItem('token'));
+                
                 const brandRes = await api.get(`/brands/${brandId}`);
+                console.log('Brand response:', brandRes.data);
                 setBrand(brandRes.data);
 
                 const metricsRes = await api.get(`/brands/${brandId}/metrics/summary`);
+                console.log('Metrics response:', metricsRes.data);
                 setMetrics(metricsRes.data);
 
                 // Fetch the guest token from the backend
                 const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
+                console.log('Token response:', tokenRes.data);
                 const embedToken = tokenRes.data.token;
 
                 // Embed the dashboard using the SDK
@@ -45,27 +63,107 @@ export default function BrandPage() {
                 }
 
             } catch (err) {
-                setError('Failed to fetch or embed brand data.');
-                console.error(err);
+                console.error('Error details:', err);
+                console.error('Error response:', err.response);
+                console.error('Error status:', err.response?.status);
+                console.error('Error data:', err.response?.data);
+                
                 if (err.response && err.response.status === 403) {
+                    // Clear invalid token and redirect to login
+                    localStorage.removeItem('token');
                     router.push('/');
+                    return;
                 }
+                
+                setError('Failed to fetch brand data. Please try refreshing the page.');
             } finally {
                 setLoading(false);
+                setIsFetching(false);
             }
         };
 
         fetchData();
-    }, [brandId, router, dashboardContainer]);
+    }, [brandId, router]); // Simplified dependencies
 
-    if (error) return <p style={{ color: 'red' }}>{error}</p>;
-    if (!brand && loading) return <p>Loading...</p>;
+    // Reset state when brandId changes
+    useEffect(() => {
+        setBrand(null);
+        setMetrics(null);
+        setError('');
+        setIsFetching(false);
+        setLoading(true);
+    }, [brandId]);
+
+    // Manual retry function
+    const handleRetry = () => {
+        setError('');
+        setIsFetching(false);
+        setLoading(true);
+        // The useEffect will automatically trigger a new fetch
+    };
+
+    if (error) return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p style={{ color: 'red', marginBottom: '1rem' }}>{error}</p>
+            <button 
+                onClick={handleRetry}
+                style={{ 
+                    padding: '10px 20px', 
+                    backgroundColor: '#007bff', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer' 
+                }}
+            >
+                Retry
+            </button>
+            <button 
+                onClick={() => router.push('/dashboard')}
+                style={{ 
+                    padding: '10px 20px', 
+                    backgroundColor: '#6c757d', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer',
+                    marginLeft: '10px'
+                }}
+            >
+                Back to Dashboard
+            </button>
+        </div>
+    );
+    if (!brand && loading) return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Loading brand data...</p>
+            {isFetching && <p style={{ fontSize: '14px', color: '#666' }}>Fetching from server...</p>}
+        </div>
+    );
     if (!brand) return <p>No brand data found.</p>;
 
     return (
         <div className="container">
             <main className="main">
-                <h1 className="title">{brand.name}</h1>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                    <h1 className="title">{brand.name}</h1>
+                    <button 
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            router.push('/');
+                        }}
+                        style={{ 
+                            padding: '8px 16px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer' 
+                        }}
+                    >
+                        Logout
+                    </button>
+                </div>
 
                 <div style={{ marginTop: '2rem', width: '100%', maxWidth: '800px' }}>
                     <h2>Key Metrics</h2>
