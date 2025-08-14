@@ -102,12 +102,12 @@ export default function BrandPage() {
             setDashboardError('');
             setDebugInfo('Starting dashboard embedding process...');
 
-            console.log('Fetching guest token for dashboard...');
-            setDebugInfo('Fetching guest token...');
+            console.log('Fetching embed token for dashboard...');
+            setDebugInfo('Fetching embed token...');
             
             const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
             console.log('Token response:', tokenRes.data);
-            setDebugInfo('Guest token received successfully');
+            setDebugInfo('Embed token received successfully');
             
             const embedToken = tokenRes.data.token;
             console.log('Embed token received:', embedToken.substring(0, 20) + '...');
@@ -153,19 +153,19 @@ export default function BrandPage() {
     const tryMultipleDashboardApproaches = async (container, embedToken) => {
         const approaches = [
             {
-                name: 'SDK with UUID',
+                name: 'SDK with Numeric ID',
                 method: () => trySDKApproach(container, embedToken, DASHBOARD_ID)
             },
             {
-                name: 'SDK with UUID (Alt)',
+                name: 'SDK with Numeric ID (Alt)',
                 method: () => trySDKApproach(container, embedToken, DASHBOARD_UUID)
             },
             {
-                name: 'Iframe with UUID',
+                name: 'Iframe with Numeric ID',
                 method: () => tryIframeApproach(container, embedToken, DASHBOARD_ID)
             },
             {
-                name: 'Iframe with UUID (Alt)',
+                name: 'Iframe with Numeric ID (Alt)',
                 method: () => tryIframeApproach(container, embedToken, DASHBOARD_UUID)
             }
         ];
@@ -217,10 +217,7 @@ export default function BrandPage() {
             // First, verify the dashboard exists and is accessible
             setDebugInfo(`Verifying dashboard ${dashboardId} exists...`);
             const dashboardCheck = await fetch(`http://localhost:8088/superset/dashboard/${dashboardId}/`, {
-                method: 'HEAD',
-                headers: {
-                    'Authorization': `Bearer ${embedToken}`
-                }
+                method: 'HEAD'
             });
             
             if (!dashboardCheck.ok) {
@@ -229,11 +226,13 @@ export default function BrandPage() {
             
             setDebugInfo(`Dashboard ${dashboardId} verified, attempting SDK embedding...`);
 
+            // For Superset 4.x, we need to use the embedded SDK without guest tokens
+            // The SDK will handle authentication internally
             const result = await sdkFunction({
                 id: dashboardId,
                 supersetDomain: "http://localhost:8088",
                 mountPoint: container,
-                fetchGuestToken: () => Promise.resolve(embedToken),
+                // Remove fetchGuestToken since it's deprecated in Superset 4.x
                 dashboardUiConfig: {
                     hideTitle: true,
                     hideChartControls: false,

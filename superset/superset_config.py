@@ -18,10 +18,16 @@ FEATURE_FLAGS = {
     "DASHBOARD_NATIVE_FILTERS": True,
     "EMBEDDED_CHARTS": True,
     "EMBEDDED_DASHBOARDS": True,
+    "EMBEDDED_SUPERSET": True,
+    "DASHBOARD_RBAC": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
 }
 
-# Guest token configuration
+# Guest token configuration for embedded SDK
 GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI")
+
+# Enable guest token authentication for embedded SDK
+ENABLE_GUEST_TOKEN_AUTH = True
 
 # Basic CORS settings
 ENABLE_CORS = True
@@ -46,8 +52,12 @@ ENABLE_PROXY_FIX = True
 # Disable frame protection for development - use environment variable if available
 FRAME_PROTECTION = os.environ.get('SUPERSET_FRAME_PROTECTION', 'false').lower() == 'true'
 
-# Enable guest token authentication
-ENABLE_GUEST_TOKEN_AUTH = True
+# Enable embedded SDK authentication
+ENABLE_EMBEDDED_SDK = True
+
+# JWT settings for embedded SDK
+JWT_SECRET_KEY = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI")
+JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hour
 
 # Logging configuration for debug
 LOGGING_CONFIG = {
