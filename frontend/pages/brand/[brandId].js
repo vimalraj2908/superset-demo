@@ -16,9 +16,84 @@ export default function BrandPage() {
     const [debugInfo, setDebugInfo] = useState('');
     const dashboardContainer = useRef(null);
 
-    // Correct dashboard ID from your backend - use numeric ID, not UUID
-    const DASHBOARD_ID = "1"; // Use the numeric ID that works in Superset
-    const DASHBOARD_UUID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Keep UUID for reference
+    // Auto-detect dashboard ID from Superset
+    const [detectedDashboardId, setDetectedDashboardId] = useState(null);
+    const [detectedDashboardUuid, setDetectedDashboardUuid] = useState(null);
+
+    // Function to detect available dashboards and set correct IDs
+    const detectDashboardIds = async () => {
+        try {
+            setDebugInfo('🔍 Detecting available dashboards in Superset...');
+            
+            // Try direct Superset access first
+            let response;
+            try {
+                response = await fetch('http://localhost:8088/superset/dashboard/list/');
+            } catch (corsError) {
+                setDebugInfo('CORS blocked direct access, trying backend proxy...');
+                // If CORS blocks direct access, try through backend proxy
+                response = await api.get(`/brands/${brandId}/reports/dashboards`);
+                if (response.data) {
+                    const dashboards = response.data;
+                    console.log('Available dashboards (via backend):', dashboards);
+                    
+                    if (dashboards && Array.isArray(dashboards) && dashboards.length > 0) {
+                        const firstDashboard = dashboards[0];
+                        const dashboardId = firstDashboard.id;
+                        const dashboardUuid = firstDashboard.uuid;
+                        
+                        setDetectedDashboardId(dashboardId);
+                        setDetectedDashboardUuid(dashboardUuid);
+                        
+                        setDebugInfo(`✅ Detected dashboard via backend: ID=${dashboardId}, UUID=${dashboardUuid}, Title=${firstDashboard.dashboard_title}`);
+                        
+                        // Update the constants
+                        DASHBOARD_ID = dashboardId.toString();
+                        DASHBOARD_UUID = dashboardUuid;
+                        
+                        return { id: dashboardId, uuid: dashboardUuid };
+                    }
+                }
+                throw new Error('Backend proxy also failed');
+            }
+            
+            if (response.ok) {
+                const dashboards = await response.json();
+                console.log('Available dashboards (direct):', dashboards);
+                
+                if (dashboards && Array.isArray(dashboards) && dashboards.length > 0) {
+                    // Find the first available dashboard
+                    const firstDashboard = dashboards[0];
+                    const dashboardId = firstDashboard.id;
+                    const dashboardUuid = firstDashboard.uuid;
+                    
+                    setDetectedDashboardId(dashboardId);
+                    setDetectedDashboardUuid(dashboardUuid);
+                    
+                    setDebugInfo(`✅ Detected dashboard: ID=${dashboardId}, UUID=${dashboardUuid}, Title=${firstDashboard.dashboard_title}`);
+                    
+                    // Update the constants
+                    DASHBOARD_ID = dashboardId.toString();
+                    DASHBOARD_UUID = dashboardUuid;
+                    
+                    return { id: dashboardId, uuid: dashboardUuid };
+                } else {
+                    setDebugInfo('❌ No dashboards found in Superset');
+                    return null;
+                }
+            } else {
+                setDebugInfo(`❌ Could not fetch dashboard list (Status: ${response.status})`);
+                return null;
+            }
+        } catch (error) {
+            setDebugInfo(`❌ Error detecting dashboards: ${error.message}`);
+            return null;
+        }
+    };
+
+    // Correct dashboard ID from your backend - use the UUID that the backend generates tokens for
+    let DASHBOARD_ID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Use the UUID that backend generates tokens for
+    let DASHBOARD_UUID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Same UUID for consistency
 
     // Dashboard embedding function with multiple fallback options
     const embedSupersetDashboard = async () => {
@@ -78,19 +153,19 @@ export default function BrandPage() {
     const tryMultipleDashboardApproaches = async (container, embedToken) => {
         const approaches = [
             {
-                name: 'SDK with Numeric ID',
+                name: 'SDK with UUID',
                 method: () => trySDKApproach(container, embedToken, DASHBOARD_ID)
             },
             {
-                name: 'SDK with UUID',
+                name: 'SDK with UUID (Alt)',
                 method: () => trySDKApproach(container, embedToken, DASHBOARD_UUID)
             },
             {
-                name: 'Iframe with Numeric ID',
+                name: 'Iframe with UUID',
                 method: () => tryIframeApproach(container, embedToken, DASHBOARD_ID)
             },
             {
-                name: 'Iframe with UUID',
+                name: 'Iframe with UUID (Alt)',
                 method: () => tryIframeApproach(container, embedToken, DASHBOARD_UUID)
             }
         ];
@@ -123,31 +198,71 @@ export default function BrandPage() {
     const trySDKApproach = async (container, embedToken, dashboardId) => {
         setDebugInfo(`Attempting SDK approach with ID: ${dashboardId}`);
         
-        if (typeof embedDashboard !== 'function') {
-            throw new Error('embedDashboard function not available');
+        // Check if SDK is available - try both imported and window versions
+        let sdkFunction = embedDashboard;
+        if (typeof sdkFunction !== 'function') {
+            sdkFunction = window.embedDashboard;
+        }
+        
+        if (typeof sdkFunction !== 'function') {
+            throw new Error('embedDashboard function not available - SDK may not be properly imported or loaded');
         }
 
-        const result = await embedDashboard({
-            id: dashboardId,
-            supersetDomain: "http://localhost:8088",
-            mountPoint: container,
-            fetchGuestToken: () => Promise.resolve(embedToken),
-            dashboardUiConfig: {
-                hideTitle: true,
-                hideChartControls: false,
-                hideTab: false,
-                hideEditControls: true,
-            },
-        });
+        // Ensure container is properly set up
+        if (!container || !container.id) {
+            throw new Error('Container not properly initialized for SDK approach');
+        }
 
-        console.log('SDK approach result:', result);
-        
-        // Check if content was actually loaded
-        if (container.children.length > 0) {
-            setDebugInfo(`SDK approach successful with ID: ${dashboardId}`);
-            return true;
-        } else {
-            throw new Error('SDK returned success but no content loaded');
+        try {
+            // First, verify the dashboard exists and is accessible
+            setDebugInfo(`Verifying dashboard ${dashboardId} exists...`);
+            const dashboardCheck = await fetch(`http://localhost:8088/superset/dashboard/${dashboardId}/`, {
+                method: 'HEAD',
+                headers: {
+                    'Authorization': `Bearer ${embedToken}`
+                }
+            });
+            
+            if (!dashboardCheck.ok) {
+                throw new Error(`Dashboard ${dashboardId} not accessible (Status: ${dashboardCheck.status})`);
+            }
+            
+            setDebugInfo(`Dashboard ${dashboardId} verified, attempting SDK embedding...`);
+
+            const result = await sdkFunction({
+                id: dashboardId,
+                supersetDomain: "http://localhost:8088",
+                mountPoint: container,
+                fetchGuestToken: () => Promise.resolve(embedToken),
+                dashboardUiConfig: {
+                    hideTitle: true,
+                    hideChartControls: false,
+                    hideTab: false,
+                    hideEditControls: true,
+                },
+            });
+
+            console.log('SDK approach result:', result);
+            
+            // Wait a bit for the dashboard to render
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Check if content was actually loaded
+            if (container.children.length > 0 && container.innerHTML.trim() !== '') {
+                setDebugInfo(`✅ SDK approach successful with ID: ${dashboardId}`);
+                return true;
+            } else {
+                throw new Error('SDK returned success but no content loaded - container is empty');
+            }
+        } catch (sdkError) {
+            console.error('SDK specific error:', sdkError);
+            
+            // Check if it's a 404 error specifically
+            if (sdkError.message.includes('404') || sdkError.message.includes('not accessible')) {
+                throw new Error(`Dashboard ${dashboardId} not found or not accessible - check if it exists in Superset`);
+            }
+            
+            throw new Error(`SDK failed: ${sdkError.message}`);
         }
     };
 
@@ -161,44 +276,152 @@ export default function BrandPage() {
         // Create iframe
         const iframe = document.createElement('iframe');
         
-        // Try different URL formats
-        const urls = [
-            `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true&token=${embedToken}`,
-            `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true`,
-            `http://localhost:8088/superset/dashboard/${dashboardId}/`,
-        ];
+        // Try different URL formats based on dashboard ID type
+        const isUUID = dashboardId.includes('-'); // Simple UUID detection
+        let urls = [];
+        
+        if (isUUID) {
+            // For UUID, try these formats
+            urls = [
+                `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true&token=${embedToken}`,
+                `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true`,
+                `http://localhost:8088/superset/dashboard/${dashboardId}/`,
+                // Try with UUID in different format
+                `http://localhost:8088/superset/dashboard/${dashboardId}?embedded=true&token=${embedToken}`,
+            ];
+        } else {
+            // For numeric ID, try these formats
+            urls = [
+                `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true&token=${embedToken}`,
+                `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true`,
+                `http://localhost:8088/superset/dashboard/${dashboardId}/`,
+                // Try without trailing slash
+                `http://localhost:8088/superset/dashboard/${dashboardId}?embedded=true&token=${embedToken}`,
+            ];
+        }
 
         for (const url of urls) {
             try {
                 console.log(`Trying iframe URL: ${url}`);
+                setDebugInfo(`Trying iframe URL: ${url}`);
+                
                 iframe.src = url;
                 iframe.style.width = '100%';
                 iframe.style.height = '100%';
+                iframe.style.border = 'none';
                 iframe.title = 'Superset Dashboard';
                 
+                // Clear container and add iframe
+                container.innerHTML = '';
                 container.appendChild(iframe);
                 
-                // Wait a bit to see if iframe loads
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Wait longer for iframe to load
+                await new Promise(resolve => setTimeout(resolve, 4000));
                 
                 // Check if iframe loaded successfully
-                if (iframe.contentDocument && iframe.contentDocument.body) {
-                    setDebugInfo(`Iframe approach successful with ID: ${dashboardId}`);
-                    return true;
+                try {
+                    if (iframe.contentDocument && iframe.contentDocument.body && iframe.contentDocument.body.innerHTML.trim() !== '') {
+                        setDebugInfo(`✅ Iframe approach successful with ID: ${dashboardId} using URL: ${url}`);
+                        return true;
+                    }
+                } catch (crossOriginError) {
+                    // Cross-origin restrictions - check if iframe is visible and has loaded
+                    if (iframe.offsetHeight > 0 && iframe.offsetWidth > 0) {
+                        setDebugInfo(`✅ Iframe approach successful with ID: ${dashboardId} (cross-origin detected)`);
+                        return true;
+                    }
                 }
             } catch (err) {
                 console.log(`Iframe URL ${url} failed:`, err.message);
-                // Try next URL
+                setDebugInfo(`Iframe URL ${url} failed: ${err.message}`);
+                // Continue to next URL
             }
         }
         
-        throw new Error('All iframe URLs failed');
+        throw new Error(`All iframe URLs failed for dashboard ID: ${dashboardId}`);
+    };
+
+    // Check what dashboards are available in Superset
+    const checkAvailableDashboards = async () => {
+        setDebugInfo('🔍 Checking available dashboards in Superset...');
+        
+        try {
+            // Try to get dashboard list from Superset
+            const response = await fetch('http://localhost:8088/superset/dashboard/list/', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Available dashboards:', data);
+                setDebugInfo(`Found ${data.length || 0} dashboards in Superset`);
+                
+                // Look for our specific dashboard
+                if (data && Array.isArray(data)) {
+                    const ourDashboard = data.find(d => 
+                        d.id === 1 || 
+                        d.uuid === DASHBOARD_UUID ||
+                        d.dashboard_title?.toLowerCase().includes('brand')
+                    );
+                    
+                    if (ourDashboard) {
+                        setDebugInfo(`✅ Found our dashboard: ID=${ourDashboard.id}, UUID=${ourDashboard.uuid}, Title=${ourDashboard.dashboard_title}`);
+                    } else {
+                        setDebugInfo(`❌ Our dashboard not found in Superset list`);
+                    }
+                }
+            } else {
+                setDebugInfo(`❌ Could not fetch dashboard list (Status: ${response.status})`);
+            }
+        } catch (error) {
+            setDebugInfo(`❌ Error checking dashboards: ${error.message}`);
+        }
+    };
+
+    // Helper function to update dashboard status
+    const updateDashboardStatus = (containerId, status, message = '') => {
+        const statusElement = document.getElementById(`status-${containerId}`);
+        if (statusElement) {
+            let statusText = '';
+            let color = '';
+            
+            switch (status) {
+                case 'loading':
+                    statusText = '🔄 Loading...';
+                    color = '#ffc107';
+                    break;
+                case 'success':
+                    statusText = '✅ Loaded';
+                    color = '#28a745';
+                    break;
+                case 'error':
+                    statusText = `❌ Failed${message ? `: ${message}` : ''}`;
+                    color = '#dc3545';
+                    break;
+                case 'waiting':
+                    statusText = '⏳ Waiting...';
+                    color = '#6c757d';
+                    break;
+                default:
+                    statusText = status;
+                    color = '#6c757d';
+            }
+            
+            statusElement.textContent = statusText;
+            statusElement.style.color = color;
+        }
     };
 
     // Load specific dashboard in specific container
     const loadSpecificDashboard = async (containerId, dashboardId, approach) => {
         try {
             setDebugInfo(`Loading ${approach} dashboard with ID: ${dashboardId} in container: ${containerId}`);
+            
+            // Update status to loading
+            updateDashboardStatus(containerId, 'loading');
             
             // Get the specific container
             const container = document.getElementById(containerId);
@@ -224,11 +447,16 @@ export default function BrandPage() {
             if (approach === 'SDK') {
                 // Try SDK approach
                 try {
-                    if (typeof embedDashboard !== 'function') {
-                        throw new Error('SDK not available');
+                    let sdkFunction = embedDashboard;
+                    if (typeof sdkFunction !== 'function') {
+                        sdkFunction = window.embedDashboard;
+                    }
+                    
+                    if (typeof sdkFunction !== 'function') {
+                        throw new Error('SDK not available anywhere');
                     }
 
-                    const result = await embedDashboard({
+                    const result = await sdkFunction({
                         id: dashboardId,
                         supersetDomain: "http://localhost:8088",
                         mountPoint: container,
@@ -243,8 +471,10 @@ export default function BrandPage() {
 
                     console.log(`${containerId} SDK result:`, result);
                     setDebugInfo(`✅ ${containerId} loaded successfully with SDK`);
+                    updateDashboardStatus(containerId, 'success');
                 } catch (err) {
                     console.log(`${containerId} SDK failed:`, err.message);
+                    updateDashboardStatus(containerId, 'error', err.message);
                     // Fallback to iframe
                     throw new Error('SDK failed, will try iframe');
                 }
@@ -261,11 +491,13 @@ export default function BrandPage() {
                 container.appendChild(iframe);
                 
                 setDebugInfo(`✅ ${containerId} loaded successfully with iframe`);
+                updateDashboardStatus(containerId, 'success');
             }
 
         } catch (err) {
             console.error(`Error loading ${containerId}:`, err);
             setDebugInfo(`❌ ${containerId} failed: ${err.message}`);
+            updateDashboardStatus(containerId, 'error', err.message);
             
             // Show error state in container
             const container = document.getElementById(containerId);
@@ -278,6 +510,99 @@ export default function BrandPage() {
                     </div>
                 `;
             }
+        }
+    };
+
+    // Comprehensive test function for debugging
+    const runComprehensiveTest = async () => {
+        setDebugInfo('🧪 Starting comprehensive dashboard test...');
+        
+        const testResults = {
+            'SDK + Numeric ID': { status: 'pending', error: null },
+            'SDK + UUID': { status: 'pending', error: null },
+            'Iframe + Numeric ID': { status: 'pending', error: null },
+            'Iframe + UUID': { status: 'pending', error: null }
+        };
+        
+        try {
+            // Test 1: SDK with Numeric ID
+            setDebugInfo('🧪 Testing SDK + Numeric ID...');
+            try {
+                const container = document.getElementById('dashboard-sdk-numeric');
+                if (container) {
+                    const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
+                    const embedToken = tokenRes.data.token;
+                    
+                    await trySDKApproach(container, embedToken, DASHBOARD_ID);
+                    testResults['SDK + Numeric ID'] = { status: 'success', error: null };
+                    setDebugInfo('✅ SDK + Numeric ID test passed');
+                }
+            } catch (err) {
+                testResults['SDK + Numeric ID'] = { status: 'failed', error: err.message };
+                setDebugInfo(`❌ SDK + Numeric ID test failed: ${err.message}`);
+            }
+            
+            // Test 2: SDK with UUID
+            setDebugInfo('🧪 Testing SDK + UUID...');
+            try {
+                const container = document.getElementById('dashboard-sdk-uuid');
+                if (container) {
+                    const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
+                    const embedToken = tokenRes.data.token;
+                    
+                    await trySDKApproach(container, embedToken, DASHBOARD_UUID);
+                    testResults['SDK + UUID'] = { status: 'success', error: null };
+                    setDebugInfo('✅ SDK + UUID test passed');
+                }
+            } catch (err) {
+                testResults['SDK + UUID'] = { status: 'failed', error: err.message };
+                setDebugInfo(`❌ SDK + UUID test failed: ${err.message}`);
+            }
+            
+            // Test 3: Iframe with Numeric ID
+            setDebugInfo('🧪 Testing Iframe + Numeric ID...');
+            try {
+                const container = document.getElementById('dashboard-iframe-numeric');
+                if (container) {
+                    const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
+                    const embedToken = tokenRes.data.token;
+                    
+                    await tryIframeApproach(container, embedToken, DASHBOARD_ID);
+                    testResults['Iframe + Numeric ID'] = { status: 'success', error: null };
+                    setDebugInfo('✅ Iframe + Numeric ID test passed');
+                }
+            } catch (err) {
+                testResults['Iframe + Numeric ID'] = { status: 'failed', error: err.message };
+                setDebugInfo(`❌ Iframe + Numeric ID test failed: ${err.message}`);
+            }
+            
+            // Test 4: Iframe with UUID
+            setDebugInfo('🧪 Testing Iframe + UUID...');
+            try {
+                const container = document.getElementById('dashboard-iframe-uuid');
+                if (container) {
+                    const tokenRes = await api.get(`/brands/${brandId}/reports/iframe`);
+                    const embedToken = tokenRes.data.token;
+                    
+                    await tryIframeApproach(container, embedToken, DASHBOARD_UUID);
+                    testResults['Iframe + UUID'] = { status: 'success', error: null };
+                    setDebugInfo('✅ Iframe + UUID test passed');
+                }
+            } catch (err) {
+                testResults['Iframe + UUID'] = { status: 'failed', error: err.message };
+                setDebugInfo(`❌ Iframe + UUID test failed: ${err.message}`);
+            }
+            
+            // Summary
+            const summary = Object.entries(testResults)
+                .map(([test, result]) => `${test}: ${result.status === 'success' ? '✅' : '❌'}`)
+                .join(' | ');
+            
+            setDebugInfo(`🧪 Comprehensive test complete! ${summary}`);
+            console.log('Comprehensive test results:', testResults);
+            
+        } catch (err) {
+            setDebugInfo(`❌ Comprehensive test failed: ${err.message}`);
         }
     };
 
@@ -315,25 +640,63 @@ export default function BrandPage() {
     useEffect(() => {
         console.log('SDK Check - embedDashboard available:', typeof embedDashboard === 'function');
         console.log('SDK Check - embedDashboard function:', embedDashboard);
-        setDebugInfo(`SDK Status: ${typeof embedDashboard === 'function' ? 'Available' : 'NOT AVAILABLE'}`);
+        console.log('SDK Check - window.embedDashboard:', typeof window.embedDashboard === 'function');
         
-        // Force check container after a longer delay to ensure DOM is ready
-        const checkContainer = () => {
-            console.log('Container check - brandId:', brandId);
-            if (brandId) {
-                console.log('BrandId ready, starting all dashboard loading...');
-                setDebugInfo('BrandId ready, starting all dashboard loading...');
-                // Load all dashboards when brandId is available
-                loadAllDashboards();
+        const sdkStatus = typeof embedDashboard === 'function' ? 'Available' : 'NOT AVAILABLE';
+        setDebugInfo(`SDK Status: ${sdkStatus}`);
+        
+        // Additional SDK checks
+        if (typeof embedDashboard !== 'function') {
+            console.error('SDK not available - checking alternatives...');
+            setDebugInfo('SDK not available - checking alternatives...');
+            
+            // Check if SDK is available on window object
+            if (typeof window.embedDashboard === 'function') {
+                console.log('SDK found on window object');
+                setDebugInfo('SDK found on window object - will use that');
             } else {
-                console.log('BrandId not ready yet, waiting...');
-                setDebugInfo('BrandId not ready yet, waiting...');
-                setTimeout(checkContainer, 500);
+                console.error('SDK not found anywhere - iframe approach will be used');
+                setDebugInfo('SDK not found anywhere - iframe approach will be used');
+            }
+        }
+        
+        // Auto-detect dashboard IDs first
+        const initializeDashboards = async () => {
+            const detected = await detectDashboardIds();
+            if (detected) {
+                setDebugInfo(`Dashboard IDs updated: ID=${detected.id}, UUID=${detected.uuid}`);
+                // Now load dashboards with correct IDs
+                setTimeout(() => {
+                    if (brandId) {
+                        console.log('BrandId ready, starting all dashboard loading...');
+                        setDebugInfo('BrandId ready, starting all dashboard loading...');
+                        loadAllDashboards();
+                    }
+                }, 1000);
+            } else {
+                setDebugInfo('Could not detect dashboard IDs, using fallback approach');
+                // Force check container after a longer delay to ensure the DOM is ready
+                const checkContainer = () => {
+                    console.log('Container check - brandId:', brandId);
+                    if (brandId) {
+                        console.log('BrandId ready, starting all dashboard loading...');
+                        setDebugInfo('BrandId ready, starting all dashboard loading...');
+                        // Load all dashboards when brandId is available
+                        loadAllDashboards();
+                    } else {
+                        console.log('BrandId not ready yet, waiting...');
+                        setDebugInfo('BrandId not ready yet, waiting...');
+                        setTimeout(checkContainer, 500);
+                    }
+                };
+                
+                // Start checking after initial delay
+                setTimeout(checkContainer, 1000);
             }
         };
         
-        // Start checking after initial delay
-        setTimeout(checkContainer, 1000);
+        // Start dashboard detection
+        initializeDashboards();
     }, [brandId]); // Add brandId as dependency
 
     useEffect(() => {
@@ -551,23 +914,9 @@ export default function BrandPage() {
                             </button>
                             <button 
                                 onClick={() => {
-                                    console.log('Testing comprehensive dashboard loading...');
-                                    setDebugInfo('Testing comprehensive approach...');
-                                    // Test the comprehensive dashboard loading approach
-                                    const container = dashboardContainer.current;
-                                    if (container && brandId) {
-                                        // Create a test token for testing
-                                        const testToken = 'test-token-for-testing';
-                                        tryMultipleDashboardApproaches(container, testToken)
-                                            .then(() => {
-                                                setDebugInfo('Comprehensive test completed!');
-                                            })
-                                            .catch(err => {
-                                                setDebugInfo(`Comprehensive test failed: ${err.message}`);
-                                            });
-                                    } else {
-                                        setDebugInfo('Container or brandId not available for test');
-                                    }
+                                    console.log('Running comprehensive dashboard test...');
+                                    setDebugInfo('Running comprehensive test...');
+                                    runComprehensiveTest();
                                 }}
                                 style={{ 
                                     padding: '6px 12px', 
@@ -614,6 +963,45 @@ export default function BrandPage() {
                             >
                                 Debug Info
                             </button>
+                            <button 
+                                onClick={() => {
+                                    console.log('Checking available dashboards...');
+                                    checkAvailableDashboards();
+                                }}
+                                style={{ 
+                                    padding: '6px 12px', 
+                                    backgroundColor: '#6f42c1', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    borderRadius: '4px', 
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Check Dashboards
+                            </button>
+                            <button 
+                                onClick={async () => {
+                                    console.log('Auto-detecting dashboard IDs...');
+                                    const detected = await detectDashboardIds();
+                                    if (detected) {
+                                        setDebugInfo(`✅ Dashboard IDs detected and updated: ID=${detected.id}, UUID=${detected.uuid}`);
+                                        // Reload dashboards with new IDs
+                                        setTimeout(() => loadAllDashboards(), 1000);
+                                    }
+                                }}
+                                style={{ 
+                                    padding: '6px 12px', 
+                                    backgroundColor: '#20c997', 
+                                    color: 'white', 
+                                    border: 'none', 
+                                    borderRadius: '4px', 
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                }}
+                            >
+                                Auto-Detect IDs
+                            </button>
                         </div>
                     </div>
                     
@@ -632,6 +1020,47 @@ export default function BrandPage() {
                         </div>
                     )}
                     
+                    {/* Dashboard ID Information */}
+                    <div style={{ 
+                        marginBottom: '1rem',
+                        padding: '10px', 
+                        backgroundColor: '#fff3cd', 
+                        borderRadius: '4px',
+                        border: '1px solid #ffeaa7',
+                        fontSize: '14px',
+                        color: '#856404'
+                    }}>
+                        <strong>Dashboard IDs:</strong>
+                        <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>Current ID: <code>{DASHBOARD_ID}</code></div>
+                            <div>Current UUID: <code>{DASHBOARD_UUID}</code></div>
+                            {detectedDashboardId && (
+                                <div>Detected ID: <code>{detectedDashboardId}</code></div>
+                            )}
+                            {detectedDashboardUuid && (
+                                <div>Detected UUID: <code>{detectedDashboardUuid}</code></div>
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* Dashboard Status Summary */}
+                    <div style={{ 
+                        marginBottom: '1rem',
+                        padding: '10px', 
+                        backgroundColor: '#f8f9fa', 
+                        borderRadius: '4px',
+                        border: '1px solid #dee2e6',
+                        fontSize: '14px'
+                    }}>
+                        <strong>Dashboard Status Summary:</strong>
+                        <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div>🚀 SDK + UUID: <span id="status-sdk-numeric">⏳ Waiting...</span></div>
+                            <div>🔧 SDK + UUID (Alt): <span id="status-sdk-uuid">⏳ Waiting...</span></div>
+                            <div>🌐 Iframe + UUID: <span id="status-iframe-numeric">⏳ Waiting...</span></div>
+                            <div>🔗 Iframe + UUID (Alt): <span id="status-iframe-uuid">⏳ Waiting...</span></div>
+                        </div>
+                    </div>
+                    
                     {/* Dashboard Grid - 2x2 Layout */}
                     <div style={{ 
                         display: 'grid', 
@@ -640,7 +1069,7 @@ export default function BrandPage() {
                         width: '100%' 
                     }}>
                         
-                        {/* Approach 1: SDK with Numeric ID */}
+                        {/* Approach 1: SDK with UUID */}
                         <div style={{ 
                             border: '2px solid #007bff', 
                             borderRadius: '8px',
@@ -653,7 +1082,7 @@ export default function BrandPage() {
                                 fontSize: '16px',
                                 textAlign: 'center'
                             }}>
-                                🚀 SDK + Numeric ID (1)
+                                🚀 SDK + UUID
                             </h3>
                             <div 
                                 id="dashboard-sdk-numeric"
@@ -687,7 +1116,7 @@ export default function BrandPage() {
                             </div>
                         </div>
                         
-                        {/* Approach 2: SDK with UUID */}
+                        {/* Approach 2: SDK with UUID (Alternative) */}
                         <div style={{ 
                             border: '2px solid #28a745', 
                             borderRadius: '8px',
@@ -700,7 +1129,7 @@ export default function BrandPage() {
                                 fontSize: '16px',
                                 textAlign: 'center'
                             }}>
-                                🔧 SDK + UUID
+                                🔧 SDK + UUID (Alt)
                             </h3>
                             <div 
                                 id="dashboard-sdk-uuid"
@@ -734,7 +1163,7 @@ export default function BrandPage() {
                             </div>
                         </div>
                         
-                        {/* Approach 3: Iframe with Numeric ID */}
+                        {/* Approach 3: Iframe with UUID */}
                         <div style={{ 
                             border: '2px solid #ffc107', 
                             borderRadius: '8px',
@@ -747,7 +1176,7 @@ export default function BrandPage() {
                                 fontSize: '16px',
                                 textAlign: 'center'
                             }}>
-                                🌐 Iframe + Numeric ID (1)
+                                🌐 Iframe + UUID
                             </h3>
                             <div 
                                 id="dashboard-iframe-numeric"

@@ -54,7 +54,42 @@ CORS_OPTIONS = {
     'supports_credentials': True,
     'allow_headers': ['*'],
     'resources': ['*'],
-    'origins': ['http://localhost:3000', 'http://localhost:3001']
+    'origins': ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
+}
+
+# Additional CORS configuration for Superset
+CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ['*']
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+
+# Enable CORS for all routes
+ENABLE_CORS = True
+
+# Flask-CORS configuration
+CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ['*']
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+
+# Additional CORS settings for API endpoints
+CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']
+CORS_MAX_AGE = 86400
+
+# Enable CORS for specific routes
+CORS_ROUTES = {
+    r"/superset/dashboard/*": {
+        "origins": ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["*"],
+        "supports_credentials": True
+    },
+    r"/superset/dashboard/list/*": {
+        "origins": ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
+        "methods": ["GET", "OPTIONS"],
+        "allow_headers": ["*"],
+        "supports_credentials": True
+    }
 }
 
 # Enable SQL Lab
