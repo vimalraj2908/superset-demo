@@ -24,6 +24,7 @@ echo "✅ Superset initialization complete!"
 # Start Superset server
 echo "🚀 Starting Superset server on http://localhost:8088"
 echo "Admin credentials: admin/admin"
+echo "Debug mode: ENABLED"
 
-# Start Superset (this will run in foreground and keep container alive)
-exec superset run -p 8088 -h 0.0.0.0
+# Start Superset with debug mode (this will run in foreground and keep container alive)
+exec superset run -p 8088 -h 0.0.0.0 --debug

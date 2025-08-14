@@ -3,11 +3,15 @@ FROM apache/superset:latest
 # Switch to root to install packages and set permissions
 USER root
 
-# Install additional packages and curl for health checks
-RUN pip install trino sqlalchemy-trino requests && \
-    apt-get update && \
-    apt-get install -y curl && \
+# Install system dependencies for PostgreSQL and other packages
+RUN apt-get update && \
+    apt-get install -y curl libpq-dev python3-dev gcc && \
     apt-get clean
+
+# Install Python packages including flask-cors, PostgreSQL driver, and other dependencies
+RUN pip install --no-cache-dir flask-cors trino sqlalchemy-trino requests psycopg2-binary && \
+    pip list | grep -E "(flask-cors|psycopg2)" && \
+    pip install --upgrade pip
 
 # Copy the initialization script and set permissions
 COPY superset_init.sh /app/superset_init.sh

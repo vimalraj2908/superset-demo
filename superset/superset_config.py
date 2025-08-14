@@ -5,51 +5,26 @@ from typing import Dict, Any
 # Your App's Secret Key
 SECRET_KEY = os.environ.get("SUPERSET_SECRET_KEY", "your_super_secret_key_for_superset")
 
-# Configuration for embedded dashboards and guest token authentication
+# Basic database configuration
+SQLALCHEMY_DATABASE_URI = os.environ.get("SUPERSET_DATABASE_URL", "postgresql://superset:superset@superset-db:5432/superset")
+
+# Enable debug mode for detailed logging
+DEBUG = True
+FLASK_ENV = "development"
+
+# Basic feature flags
 FEATURE_FLAGS = {
     "EMBEDDED_SUPERSET": True,
     "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_CROSS_FILTERS": True,
-    "DASHBOARD_RBAC": True,
-    "ENABLE_TEMPLATE_PROCESSING": True,
     "EMBEDDED_CHARTS": True,
     "EMBEDDED_DASHBOARDS": True,
 }
 
-# The following secret is for signing guest tokens.
-# Make sure it's long, complex, and stored securely.
-GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2trC1v9SzWH_nWJehi5B2tI")
-
 # Guest token configuration
-GUEST_ROLE_NAME = "Guest"
-GUEST_TOKEN_JWT_ALGO = "HS256"
-GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
+GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI")
 
-# Allow the frontend application to embed dashboards
-TALISMAN_CONFIG = {
-    "content_security_policy": {
-        "frame-ancestors": ["'self'", "http://localhost:3000", "http://localhost:3001"],
-    },
-    "force_https": False,
-    "strict_transport_security": False,
-}
-
-# This is needed to run behind a reverse proxy
-ENABLE_PROXY_FIX = True
-
-# Security settings for guest tokens
-WTF_CSRF_ENABLED = True
-WTF_CSRF_TIME_LIMIT = None
-
-# Guest token authentication settings
-AUTH_TYPE = "AUTH_DB"
-AUTH_USER_REGISTRATION = False
-AUTH_USER_REGISTRATION_ROLE = "Guest"
-
-# Enable guest token authentication
-ENABLE_GUEST_TOKEN_AUTH = True
-
-# CORS settings for embedded dashboards
+# Basic CORS settings
+ENABLE_CORS = True
 CORS_OPTIONS = {
     'supports_credentials': True,
     'allow_headers': ['*'],
@@ -57,71 +32,24 @@ CORS_OPTIONS = {
     'origins': ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
 }
 
-# Additional CORS configuration for Superset
-CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['*']
-CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+# Security settings
+WTF_CSRF_ENABLED = False  # Disable for development
+ENABLE_PROXY_FIX = True
 
-# Enable CORS for all routes
-ENABLE_CORS = True
+# Allow iframe embedding - use environment variable if available
+X_FRAME_OPTIONS = os.environ.get('SUPERSET_X_FRAME_OPTIONS', 'ALLOWALL')
 
-# Flask-CORS configuration
-CORS_ORIGINS = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = ['*']
-CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+# Additional iframe embedding settings
+WTF_CSRF_ENABLED = False
+ENABLE_PROXY_FIX = True
 
-# Additional CORS settings for API endpoints
-CORS_EXPOSE_HEADERS = ['Content-Type', 'Authorization']
-CORS_MAX_AGE = 86400
+# Disable frame protection for development - use environment variable if available
+FRAME_PROTECTION = os.environ.get('SUPERSET_FRAME_PROTECTION', 'false').lower() == 'true'
 
-# Enable CORS for specific routes
-CORS_ROUTES = {
-    r"/superset/dashboard/*": {
-        "origins": ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["*"],
-        "supports_credentials": True
-    },
-    r"/superset/dashboard/list/*": {
-        "origins": ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"],
-        "methods": ["GET", "OPTIONS"],
-        "allow_headers": ["*"],
-        "supports_credentials": True
-    }
-}
+# Enable guest token authentication
+ENABLE_GUEST_TOKEN_AUTH = True
 
-# Enable SQL Lab
-FEATURE_FLAGS["SQL_VALIDATORS_BY_ENGINE"] = {
-    "trino": "TrinoNativeSQLValidator"
-}
-
-# Cache configuration
-CACHE_CONFIG = {
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 300
-}
-
-# Timeout configuration
-SQLLAB_TIMEOUT = 300
-SQLLAB_DEFAULT_DBID = None
-
-# Database engine configurations
-ENGINE_CONFIG = {
-    'trino': {
-        'sqlalchemy_uri': 'trino://trino:8080',
-        'connect_args': {
-            'host': 'trino',
-            'port': 8080,
-            'catalog': 'mongodb',
-            'schema': 'default',
-            'user': 'admin'
-        }
-    }
-}
-
-# Logging configuration
+# Logging configuration for debug
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -132,7 +60,7 @@ LOGGING_CONFIG = {
     },
     'handlers': {
         'default': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'formatter': 'standard',
             'class': 'logging.StreamHandler',
         },
@@ -140,8 +68,18 @@ LOGGING_CONFIG = {
     'loggers': {
         '': {
             'handlers': ['default'],
-            'level': 'INFO',
+            'level': 'DEBUG',
             'propagate': False
         },
+        'superset': {
+            'handlers': ['default'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'flask_appbuilder': {
+            'handlers': ['default'],
+            'level': 'DEBUG',
+            'propagate': False
+        }
     }
 }

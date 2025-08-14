@@ -91,9 +91,9 @@ export default function BrandPage() {
         }
     };
 
-    // Correct dashboard ID from your backend - use the UUID that the backend generates tokens for
-    let DASHBOARD_ID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Use the UUID that backend generates tokens for
-    let DASHBOARD_UUID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Same UUID for consistency
+    // Dashboard ID from backend configuration - these will be updated by detectDashboardIds()
+    let DASHBOARD_ID = "1"; // Will be updated by backend detection
+    let DASHBOARD_UUID = "0a7d4b2a-23c9-4789-9229-a4e1e727902a"; // Will be updated by backend detection
 
     // Dashboard embedding function with multiple fallback options
     const embedSupersetDashboard = async () => {
@@ -479,9 +479,9 @@ export default function BrandPage() {
                     throw new Error('SDK failed, will try iframe');
                 }
             } else {
-                // Iframe approach
-                const iframe = document.createElement('iframe');
-                iframe.src = `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true&token=${embedToken}`;
+                             // Iframe approach
+             const iframe = document.createElement('iframe');
+             iframe.src = `http://localhost:8088/superset/dashboard/${dashboardId}/?embedded=true&token=${embedToken}`;
                 iframe.style.width = '100%';
                 iframe.style.height = '100%';
                 iframe.style.border = 'none';

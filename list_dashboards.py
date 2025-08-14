@@ -16,6 +16,8 @@ def login_to_superset():
     session = requests.Session()
     
     try:
+        print(f"🔐 Attempting to login to: {SUPERSET_URL}/api/v1/security/login")
+        
         # Use API login
         login_data = {
             'username': ADMIN_USERNAME,
@@ -25,6 +27,9 @@ def login_to_superset():
         }
         
         response = session.post(f"{SUPERSET_URL}/api/v1/security/login", json=login_data)
+        
+        print(f"📡 Login response status: {response.status_code}")
+        print(f"📡 Login response headers: {dict(response.headers)}")
         
         if response.status_code == 200:
             result = response.json()
@@ -38,9 +43,16 @@ def login_to_superset():
                 })
                 
                 print("✅ Successfully logged in to Superset")
+                print(f"🔑 Access token: {access_token[:20]}...")
+                print(f"📋 Full login response: {json.dumps(result, indent=2)}")
                 return session
+            else:
+                print("❌ No access token in response")
+                print(f"Response content: {response.text}")
+        else:
+            print(f"❌ Failed to login: {response.status_code}")
+            print(f"Response content: {response.text}")
         
-        print(f"❌ Failed to login: {response.status_code}")
         return None
             
     except Exception as e:
@@ -51,8 +63,15 @@ def get_dashboards(session):
     """Get list of all dashboards"""
     try:
         print("📊 Retrieving dashboards...")
+        print(f"🔗 Requesting: {SUPERSET_URL}/api/v1/dashboard")
+        print(f"🔑 Headers: {dict(session.headers)}")
         
+        print(f"🔗 Session base URL: {session.get(f'{SUPERSET_URL}/api/v1/dashboard').url}")
         response = session.get(f"{SUPERSET_URL}/api/v1/dashboard")
+        
+        print(f"📡 Dashboard response status: {response.status_code}")
+        print(f"📡 Dashboard response URL: {response.url}")
+        print(f"📡 Dashboard response headers: {dict(response.headers)}")
         
         if response.status_code == 200:
             data = response.json()

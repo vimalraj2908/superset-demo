@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   mongo:
     image: mongo:latest
@@ -42,14 +41,27 @@ services:
     networks:
       - brand-dashboard-net
 
+  superset-db:
+    image: postgres:13-alpine
+    container_name: superset-db
+    environment:
+      - POSTGRES_DB=superset
+      - POSTGRES_USER=superset
+      - POSTGRES_PASSWORD=superset
+    volumes:
+      - superset-postgres-data:/var/lib/postgresql/data
+    networks:
+      - brand-dashboard-net
+
   superset:
     build: ./superset
     container_name: superset
-    ports:
-      - "8088:8088"
+    expose:
+      - "8088"
     depends_on:
       - trino
       - mongo
+      - superset-db
     environment:
       - SUPERSET_SECRET_KEY=jwt.secret=86251ab13a12de28439018414f2441dedac2d6ff52cd61ff9d625e862e41dad2
       - SUPERSET_GUEST_TOKEN_JWT_SECRET=hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI
@@ -57,17 +69,33 @@ services:
       - SUPERSET_CONFIG_PATH=/app/superset_config.py
       - PYTHONPATH=/app
       - ADMIN_USERNAME=admin
-      - ADMIN_EMAIL=admin@superset.com
+      - ADMIN_EMAIL=admin@admin.com
       - ADMIN_PASSWORD=admin
       - TRINO_HOST=trino
       - TRINO_PORT=8080
       - MONGODB_HOST=mongo
       - MONGODB_PORT=27017
+      - SUPERSET_DATABASE_URL=postgresql://superset:superset@superset-db:5432/superset
+      # Force X-Frame-Options to allow iframe embedding
+      - SUPERSET_X_FRAME_OPTIONS=ALLOWALL
+      - SUPERSET_FRAME_PROTECTION=false
     volumes:
-      - ./superset_config.py:/app/superset_config.py
-      - ./superset_init.sh:/app/superset_init.sh
+      - ./superset/superset_config.py:/app/superset_config.py
+      - ./superset/superset_init.sh:/app/superset_init.sh
       - superset-data:/var/lib/superset
       - superset-db:/app/superset.db
+    networks:
+      - brand-dashboard-net
+
+  superset-proxy:
+    image: nginx:alpine
+    container_name: superset-proxy
+    ports:
+      - "8088:80"
+    volumes:
+      - ./superset/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - superset
     networks:
       - brand-dashboard-net
 
@@ -76,6 +104,7 @@ volumes:
   mongo-data:
   superset-data:
   superset-db:
+  superset-postgres-data:
 
 networks:
   brand-dashboard-net:

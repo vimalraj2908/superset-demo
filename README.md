@@ -114,7 +114,7 @@ The application uses Superset's guest token mechanism for secure embedding. This
 1.  Navigate to **Data** > **Databases**.
 2.  Click the **+ DATABASE** button.
 3.  Select **Trino** as the database engine.
-4.  Set the **SQLALCHEMY URI** to: `trino://trino:8080/mongodb/default`
+4.  Set the **SQLALCHEMY URI** to: `trino://admin@trino:8080/mongodb/default`
 5.  Set the **Database Name** to: `MongoDB via Trino`
 6.  Click the **Advanced** tab, then the **Security** sub-tab.
 7.  Check the box for **Enable template processing**. This is crucial for row-level security to work.
