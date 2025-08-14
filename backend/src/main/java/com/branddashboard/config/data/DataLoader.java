@@ -177,16 +177,16 @@ public class DataLoader implements CommandLineRunner {
             int userCount = 5 + random.nextInt(16); // 5 to 20 users
             
             for (int i = 1; i <= userCount; i++) {
-                User user = new User();
+        User user = new User();
                 user.setId(UUID.randomUUID().toString());
                 user.setEmailId(generateEmail(brand.getName(), i, domains[random.nextInt(domains.length)]));
                 user.setPassword(passwordEncoder.encode("password123"));
                 user.setRole(roles[random.nextInt(roles.length)]);
                 user.setMobile(generateMobile());
-                user.setVerified(true);
-                user.setActive(true);
-                user.setDeleted(false);
-                user.setBrandIds(Collections.singletonList(brand.getId()));
+        user.setVerified(true);
+        user.setActive(true);
+        user.setDeleted(false);
+        user.setBrandIds(Collections.singletonList(brand.getId()));
                 user.setCreatedAt(new Date());
                 user.setUpdatedAt(new Date());
                 users.add(user);
