@@ -1,11 +1,6 @@
 #!/bin/bash
 
 # Wait for Superset to be ready
-echo "Waiting for Superset to be ready..."
-until curl -s http://localhost:8088 > /dev/null; do
-    echo "Waiting for Superset..."
-    sleep 5
-done
 
 echo "Superset is ready!"
 

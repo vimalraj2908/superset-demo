@@ -3,10 +3,13 @@ FROM apache/superset:latest
 # Switch to root to install packages and set permissions
 USER root
 
-# Install additional packages
-RUN pip install trino sqlalchemy-trino requests
+# Install additional packages and curl for health checks
+RUN pip install trino sqlalchemy-trino requests && \
+    apt-get update && \
+    apt-get install -y curl && \
+    apt-get clean
 
-# Copy the initialization script and set permissions in one step
+# Copy the initialization script and set permissions
 COPY superset_init.sh /app/superset_init.sh
 RUN chown superset:superset /app/superset_init.sh && chmod +x /app/superset_init.sh
 
