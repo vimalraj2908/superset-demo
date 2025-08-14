@@ -32,7 +32,7 @@ public class ReportController {
     @Value("${superset.guest_token.secret}")
     private String supersetSecret;
 
-    private static final String SUPERSET_DASHBOARD_ID = "938de2fd-883a-4107-86a9-d5a030e1209f"; // Replace with your actual dashboard UUID
+    private static final String SUPERSET_DASHBOARD_ID = "df2a444a-8df2-43ae-bae6-d61c4a717956"; // Updated to match actual dashboard UUID
 
     @GetMapping("/iframe")
     public ResponseEntity<EmbedTokenResponse> getReportIframe(@PathVariable String brandId) {

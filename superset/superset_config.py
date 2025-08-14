@@ -12,16 +12,23 @@ FEATURE_FLAGS = {
     "DASHBOARD_CROSS_FILTERS": True,
     "DASHBOARD_RBAC": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
+    "EMBEDDED_CHARTS": True,
+    "EMBEDDED_DASHBOARDS": True,
 }
 
 # The following secret is for signing guest tokens.
 # Make sure it's long, complex, and stored securely.
-GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "your-guest-token-secret-key-that-is-very-secret")
+GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2trC1v9SzWH_nWJehi5B2tI")
+
+# Guest token configuration
+GUEST_ROLE_NAME = "Guest"
+GUEST_TOKEN_JWT_ALGO = "HS256"
+GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 
 # Allow the frontend application to embed dashboards
 TALISMAN_CONFIG = {
     "content_security_policy": {
-        "frame-ancestors": ["'self'", "http://localhost:3000"],
+        "frame-ancestors": ["'self'", "http://localhost:3000", "http://localhost:3001"],
     },
     "force_https": False,
     "strict_transport_security": False,
@@ -30,10 +37,25 @@ TALISMAN_CONFIG = {
 # This is needed to run behind a reverse proxy
 ENABLE_PROXY_FIX = True
 
-# Define the role name for guest users in Superset.
-# This role needs to be created manually in the Superset UI
-# and given access to the specific datasources and dashboards.
-GUEST_ROLE_NAME = "Guest"
+# Security settings for guest tokens
+WTF_CSRF_ENABLED = True
+WTF_CSRF_TIME_LIMIT = None
+
+# Guest token authentication settings
+AUTH_TYPE = "AUTH_DB"
+AUTH_USER_REGISTRATION = False
+AUTH_USER_REGISTRATION_ROLE = "Guest"
+
+# Enable guest token authentication
+ENABLE_GUEST_TOKEN_AUTH = True
+
+# CORS settings for embedded dashboards
+CORS_OPTIONS = {
+    'supports_credentials': True,
+    'allow_headers': ['*'],
+    'resources': ['*'],
+    'origins': ['http://localhost:3000', 'http://localhost:3001']
+}
 
 # Enable SQL Lab
 FEATURE_FLAGS["SQL_VALIDATORS_BY_ENGINE"] = {
@@ -49,10 +71,6 @@ CACHE_CONFIG = {
 # Timeout configuration
 SQLLAB_TIMEOUT = 300
 SQLLAB_DEFAULT_DBID = None
-
-# Security settings
-WTF_CSRF_ENABLED = True
-WTF_CSRF_TIME_LIMIT = None
 
 # Database engine configurations
 ENGINE_CONFIG = {

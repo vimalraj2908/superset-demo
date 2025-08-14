@@ -16,7 +16,7 @@ FEATURE_FLAGS = {
 
 # The following secret is for signing guest tokens.
 # Make sure it's long, complex, and stored securely.
-GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "your-guest-token-secret-key-that-is-very-secret")
+GUEST_TOKEN_JWT_SECRET = os.environ.get("SUPERSET_GUEST_TOKEN_JWT_SECRET", "hiUasToS3ihDkBhBTyRB3trC1v9SzWH_nWJehi5B2tI")
 
 # Allow the frontend application to embed dashboards
 TALISMAN_CONFIG = {

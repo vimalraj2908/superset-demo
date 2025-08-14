@@ -6,11 +6,14 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
+        
         try {
             console.log('Attempting login with email:', email);
             
@@ -42,127 +45,276 @@ export default function LoginPage() {
         } catch (err) {
             console.error('Login error:', err);
             setError('Failed to login. Please check your credentials.');
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
         <div className="container">
             <main className="main">
-                <h1 className="title">
-                    Welcome to Brand Dashboard
-                </h1>
+                <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🚀</div>
+                    <h1 className="title" style={{ marginBottom: '0.5rem' }}>
+                        Brand Analytics Dashboard
+                    </h1>
+                    <p style={{ 
+                        fontSize: '1.1rem', 
+                        color: '#6c757d', 
+                        margin: '0',
+                        maxWidth: '600px',
+                        marginLeft: 'auto',
+                        marginRight: 'auto'
+                    }}>
+                        Access comprehensive analytics, interactive dashboards, and real-time insights for your brands
+                    </p>
+                </div>
 
-                <div style={{ marginTop: '2rem' }}>
-                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', width: '300px' }}>
-                        <h2>Login</h2>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            style={{ padding: '10px', marginBottom: '10px' }}
-                        />
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            style={{ padding: '10px', marginBottom: '10px' }}
-                        />
-                        <button type="submit" style={{ padding: '10px', cursor: 'pointer' }}>Login</button>
-                        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
-                    </form>
-                    
-                    <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px', maxWidth: '300px' }}>
-                        <h3 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>Default Login Credentials:</h3>
-                        <p style={{ margin: '5px 0', fontSize: '12px' }}><strong>Email:</strong> om-stage@ausmit.in</p>
-                        <p style={{ margin: '5px 0', fontSize: '12px' }}><strong>Password:</strong> password</p>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'flex-start',
+                    gap: '3rem',
+                    flexWrap: 'wrap'
+                }}>
+                    {/* Login Form */}
+                    <div style={{ 
+                        backgroundColor: 'white', 
+                        padding: '2rem', 
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid #e9ecef',
+                        minWidth: '350px'
+                    }}>
+                        <h2 style={{ 
+                            margin: '0 0 1.5rem 0', 
+                            textAlign: 'center',
+                            color: '#212529'
+                        }}>
+                            Sign In
+                        </h2>
+                        
+                        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '0.5rem', 
+                                    fontWeight: '500',
+                                    color: '#495057'
+                                }}>
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    style={{ 
+                                        width: '100%',
+                                        padding: '12px', 
+                                        border: '1px solid #ced4da',
+                                        borderRadius: '6px',
+                                        fontSize: '1rem',
+                                        boxSizing: 'border-box'
+                                    }}
+                                    disabled={loading}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{ 
+                                    display: 'block', 
+                                    marginBottom: '0.5rem', 
+                                    fontWeight: '500',
+                                    color: '#495057'
+                                }}>
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    style={{ 
+                                        width: '100%',
+                                        padding: '12px', 
+                                        border: '1px solid #ced4da',
+                                        borderRadius: '6px',
+                                        fontSize: '1rem',
+                                        boxSizing: 'border-box'
+                                    }}
+                                    disabled={loading}
+                                />
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                style={{ 
+                                    padding: '12px', 
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    backgroundColor: loading ? '#6c757d' : '#007bff',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '1rem',
+                                    fontWeight: '500',
+                                    marginTop: '0.5rem'
+                                }}
+                            >
+                                {loading ? 'Signing In...' : 'Sign In'}
+                            </button>
+                            
+                            {error && (
+                                <div style={{ 
+                                    padding: '10px', 
+                                    backgroundColor: '#f8d7da', 
+                                    color: '#721c24', 
+                                    borderRadius: '4px',
+                                    fontSize: '0.9rem',
+                                    textAlign: 'center'
+                                }}>
+                                    {error}
+                                </div>
+                            )}
+                        </form>
                     </div>
-                    
-                    <div style={{ marginTop: '2rem' }}>
-                        <button 
-                            onClick={async () => {
-                                const token = localStorage.getItem('token');
-                                console.log('Current token:', token ? token.substring(0, 20) + '...' : 'No token');
-                                if (token) {
-                                    try {
-                                        const response = await api.get('/brands');
-                                        console.log('Test API call successful:', response.data);
-                                        alert('Token is working! Found ' + response.data.length + ' brands');
-                                    } catch (err) {
-                                        console.error('Test API call failed:', err);
-                                        if (err.response?.status === 403) {
-                                            alert('Token is invalid (403 Forbidden). Please login again.');
-                                            localStorage.removeItem('token');
-                                        } else {
-                                            alert('Token test failed: ' + err.message);
-                                        }
-                                    }
-                                } else {
-                                    alert('No token found in localStorage');
-                                }
-                            }}
-                            style={{ 
-                                padding: '10px', 
-                                backgroundColor: '#007bff', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '4px', 
-                                cursor: 'pointer',
-                                marginRight: '10px'
-                            }}
-                        >
-                            Test Token
-                        </button>
+
+                    {/* Information Panel */}
+                    <div style={{ 
+                        backgroundColor: '#f8f9fa', 
+                        padding: '2rem', 
+                        borderRadius: '12px',
+                        border: '1px solid #e9ecef',
+                        minWidth: '350px'
+                    }}>
+                        <h3 style={{ 
+                            margin: '0 0 1.5rem 0', 
+                            color: '#495057',
+                            textAlign: 'center'
+                        }}>
+                            🔑 Demo Credentials
+                        </h3>
                         
-                        <button 
-                            onClick={() => {
-                                localStorage.removeItem('token');
-                                console.log('Token cleared');
-                                alert('Token cleared from localStorage');
-                            }}
-                            style={{ 
-                                padding: '10px', 
-                                backgroundColor: '#6c757d', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '4px', 
-                                cursor: 'pointer' 
-                            }}
-                        >
-                            Clear Token
-                        </button>
-                        
-                        <button 
-                            onClick={async () => {
+                        <div style={{ marginBottom: '2rem' }}>
+                            <div style={{ 
+                                padding: '1rem', 
+                                backgroundColor: 'white', 
+                                borderRadius: '8px',
+                                border: '1px solid #dee2e6'
+                            }}>
+                                <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Admin User</h4>
+                                <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
+                                    <strong>Email:</strong> om-stage@ausmit.in
+                                </p>
+                                <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
+                                    <strong>Password:</strong> password
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ marginBottom: '2rem' }}>
+                            <div style={{ 
+                                padding: '1rem', 
+                                backgroundColor: 'white', 
+                                borderRadius: '8px',
+                                border: '1px solid #dee2e6'
+                            }}>
+                                <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Test User</h4>
+                                <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
+                                    <strong>Email:</strong> test@example.com
+                                </p>
+                                <p style={{ margin: '5px 0', fontSize: '0.9rem' }}>
+                                    <strong>Password:</strong> password123
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ 
+                            padding: '1rem', 
+                            backgroundColor: '#e3f2fd', 
+                            borderRadius: '8px',
+                            border: '1px solid #bbdefb'
+                        }}>
+                            <h4 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>🚀 What's Inside</h4>
+                            <ul style={{ 
+                                margin: '0', 
+                                paddingLeft: '1.2rem', 
+                                fontSize: '0.9rem',
+                                color: '#1976d2'
+                            }}>
+                                <li>5 Brands with different types</li>
+                                <li>64+ Users with various roles</li>
+                                <li>Interactive Superset dashboards</li>
+                                <li>Real-time analytics & metrics</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Test Token Section */}
+                <div style={{ 
+                    marginTop: '3rem', 
+                    textAlign: 'center',
+                    padding: '1rem',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef'
+                }}>
+                    <h3 style={{ margin: '0 0 1rem 0', color: '#495057' }}>🧪 Test Your Connection</h3>
+                    <button 
+                        onClick={async () => {
+                            const token = localStorage.getItem('token');
+                            console.log('Current token:', token ? token.substring(0, 20) + '...' : 'No token');
+                            if (token) {
                                 try {
-                                    const response = await api.post('/auth/login', { 
-                                        email: 'om-stage@ausmit.in', 
-                                        password: 'password' 
-                                    });
-                                    if (response.data.accessToken) {
-                                        localStorage.setItem('token', response.data.accessToken);
-                                        alert('Auto-login successful! Token stored.');
-                                    }
+                                    const response = await api.get('/brands');
+                                    console.log('Test API call successful:', response.data);
+                                    alert('✅ Token is working! Found ' + response.data.length + ' brands');
                                 } catch (err) {
-                                    alert('Auto-login failed: ' + err.message);
+                                    console.error('Test API call failed:', err);
+                                    if (err.response?.status === 403) {
+                                        alert('❌ Token is invalid (403 Forbidden). Please login again.');
+                                        localStorage.removeItem('token');
+                                    } else {
+                                        alert('❌ Token test failed: ' + err.message);
+                                    }
                                 }
-                            }}
-                            style={{ 
-                                padding: '10px', 
-                                backgroundColor: '#28a745', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '4px', 
-                                cursor: 'pointer',
-                                marginLeft: '10px'
-                            }}
-                        >
-                            Auto-Login
-                        </button>
-                    </div>
+                            } else {
+                                alert('ℹ️ No token found. Please login first.');
+                            }
+                        }}
+                        style={{ 
+                            padding: '8px 16px', 
+                            backgroundColor: '#28a745', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer',
+                            marginRight: '10px'
+                        }}
+                    >
+                        Test Token
+                    </button>
+                    
+                    <button 
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            alert('Token cleared!');
+                        }}
+                        style={{ 
+                            padding: '8px 16px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Clear Token
+                    </button>
                 </div>
             </main>
         </div>
